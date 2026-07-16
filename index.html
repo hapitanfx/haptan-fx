@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>ハピたん FX収支ノート</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --positive: #047857;
+      --negative: #b91c1c;
+      --accent: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px 16px;
+      background: #111827;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header h1 { margin: 0; font-size: 22px; }
+    header p { margin: 6px 0 0; color: #cbd5e1; font-size: 13px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat, .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    }
+    .stat .label { color: var(--muted); font-size: 13px; }
+    .stat .value { font-size: 24px; font-weight: 700; margin-top: 6px; }
+    .positive { color: var(--positive); }
+    .negative { color: var(--negative); }
+    h2 { margin-top: 0; font-size: 18px; }
+    form {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    input, select, textarea, button {
+      width: 100%;
+      font: inherit;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 11px;
+      background: white;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    .span-2 { grid-column: span 2; }
+    .span-4 { grid-column: span 4; }
+    button {
+      border: 0;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary { background: #374151; }
+    button.danger { background: #b91c1c; }
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 950px;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    .empty { color: var(--muted); text-align: center; padding: 30px; }
+    .pair-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pair-chip {
+      background: #eef2ff;
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-size: 13px;
+    }
+    small.note { color: var(--muted); display: block; margin-top: 10px; }
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      form { grid-template-columns: repeat(2, 1fr); }
+      .span-4 { grid-column: span 2; }
+      .actions { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>ハピたん FX収支ノート</h1>
+  <p>記録して、自分の勝ちパターンを見つけるためのシンプル版</p>
+</header>
+
+<main>
+  <section class="grid">
+    <div class="stat"><div class="label">合計損益</div><div id="totalProfit" class="value">¥0</div></div>
+    <div class="stat"><div class="label">合計pips</div><div id="totalPips" class="value">0.0</div></div>
+    <div class="stat"><div class="label">勝率</div><div id="winRate" class="value">0%</div></div>
+    <div class="stat"><div class="label">記録件数</div><div id="tradeCount" class="value">0</div></div>
+  </section>
+
+  <section class="card">
+    <h2>トレードを記録</h2>
+    <form id="tradeForm">
+      <div>
+        <label for="date">日付</label>
+        <input id="date" type="date" required />
+      </div>
+      <div>
+        <label for="pair">通貨ペア</label>
+        <select id="pair">
+          <option>GBPUSD</option>
+          <option>USDJPY</option>
+          <option>EURUSD</option>
+          <option>EURJPY</option>
+          <option>GBPJPY</option>
+          <option>AUDUSD</option>
+          <option>その他</option>
+        </select>
+      </div>
+      <div>
+        <label for="side">売買</label>
+        <select id="side">
+          <option value="買い">買い</option>
+          <option value="売り">売り</option>
+        </select>
+      </div>
+      <div>
+        <label for="timeframe">時間足</label>
+        <select id="timeframe">
+          <option>15分</option>
+          <option selected>1時間</option>
+          <option>4時間</option>
+          <option>日足</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="pips">獲得pips</label>
+        <input id="pips" type="number" step="0.1" placeholder="例：40" required />
+      </div>
+      <div>
+        <label for="profit">損益（円）</label>
+        <input id="profit" type="number" step="1" placeholder="例：1800" required />
+      </div>
+      <div>
+        <label for="lot">ロット</label>
+        <input id="lot" type="number" step="0.01" placeholder="例：0.10" />
+      </div>
+      <div>
+        <label for="setup">手法</label>
+        <select id="setup">
+          <option>TM＋20/80EMA</option>
+          <option>ハピたん初動</option>
+          <option>押し目・戻り</option>
+          <option>ブレイク</option>
+          <option>その他</option>
+        </select>
+      </div>
+
+      <div class="span-2">
+        <label for="reason">エントリー理由</label>
+        <textarea id="reason" placeholder="例：1Hトレンドマジック転換、80EMAの下、戻り売り"></textarea>
+      </div>
+      <div class="span-2">
+        <label for="review">振り返り</label>
+        <textarea id="review" placeholder="例：利確が早かった。次回は半分利確＋残り建値へ"></textarea>
+      </div>
+      <div class="span-4">
+        <button type="submit">このトレードを保存</button>
+      </div>
+    </form>
+    <small class="note">データはこの端末のブラウザ内に保存されます。念のため定期的にバックアップしてください。</small>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h2>通貨ペア別</h2>
+    <div id="pairSummary" class="pair-summary"></div>
+  </section>
+
+  <section class="card" style="margin-top:16px;">
+    <h2>トレード履歴</h2>
+    <div class="actions">
+      <button id="exportJson" type="button" class="secondary">バックアップ保存</button>
+      <button id="importJson" type="button" class="secondary">バックアップ読込</button>
+      <button id="exportCsv" type="button" class="secondary">CSV書き出し</button>
+      <button id="deleteAll" type="button" class="danger">全件削除</button>
+    </div>
+    <input id="fileInput" type="file" accept=".json" hidden />
+    <div class="table-wrap" style="margin-top:12px;">
+      <table>
+        <thead>
+          <tr>
+            <th>日付</th><th>通貨</th><th>売買</th><th>時間足</th><th>pips</th><th>損益</th><th>ロット</th><th>手法</th><th>振り返り</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tradeRows"></tbody>
+      </table>
+      <div id="emptyState" class="empty">まだ記録がありません。</div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const STORAGE_KEY = "hapitan_fx_trades_v1";
+  let trades = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY", maximumFractionDigits: 0 });
+  const $ = (id) => document.getElementById(id);
+
+  $("date").value = new Date().toISOString().slice(0,10);
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
+    render();
+  }
+
+  function render() {
+    const totalProfit = trades.reduce((s,t) => s + Number(t.profit || 0), 0);
+    const totalPips = trades.reduce((s,t) => s + Number(t.pips || 0), 0);
+    const wins = trades.filter(t => Number(t.profit) > 0).length;
+    const winRate = trades.length ? (wins / trades.length * 100) : 0;
+
+    $("totalProfit").textContent = yen.format(totalProfit);
+    $("totalProfit").className = "value " + (totalProfit > 0 ? "positive" : totalProfit < 0 ? "negative" : "");
+    $("totalPips").textContent = totalPips.toFixed(1);
+    $("totalPips").className = "value " + (totalPips > 0 ? "positive" : totalPips < 0 ? "negative" : "");
+    $("winRate").textContent = winRate.toFixed(1) + "%";
+    $("tradeCount").textContent = trades.length;
+
+    const rows = $("tradeRows");
+    rows.innerHTML = "";
+    $("emptyState").style.display = trades.length ? "none" : "block";
+
+    [...trades].sort((a,b) => b.date.localeCompare(a.date)).forEach(t => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(t.date)}</td>
+        <td>${escapeHtml(t.pair)}</td>
+        <td>${escapeHtml(t.side)}</td>
+        <td>${escapeHtml(t.timeframe)}</td>
+        <td class="${Number(t.pips) >= 0 ? "positive" : "negative"}">${Number(t.pips).toFixed(1)}</td>
+        <td class="${Number(t.profit) >= 0 ? "positive" : "negative"}">${yen.format(Number(t.profit))}</td>
+        <td>${t.lot ? escapeHtml(t.lot) : "-"}</td>
+        <td>${escapeHtml(t.setup)}</td>
+        <td title="${escapeHtml(t.review || "")}">${escapeHtml((t.review || "").slice(0,28))}${(t.review || "").length > 28 ? "…" : ""}</td>
+        <td><button class="danger" style="padding:7px 10px;" onclick="removeTrade('${t.id}')">削除</button></td>
+      `;
+      rows.appendChild(tr);
+    });
+
+    const summary = {};
+    trades.forEach(t => {
+      if (!summary[t.pair]) summary[t.pair] = { count:0, profit:0, wins:0 };
+      summary[t.pair].count++;
+      summary[t.pair].profit += Number(t.profit || 0);
+      if (Number(t.profit) > 0) summary[t.pair].wins++;
+    });
+    const pairSummary = $("pairSummary");
+    pairSummary.innerHTML = "";
+    Object.entries(summary).sort((a,b) => b[1].profit - a[1].profit).forEach(([pair, s]) => {
+      const div = document.createElement("div");
+      div.className = "pair-chip";
+      div.innerHTML = `<strong>${escapeHtml(pair)}</strong>　${s.count}回／勝率${(s.wins/s.count*100).toFixed(0)}%／<span class="${s.profit >= 0 ? "positive":"negative"}">${yen.format(s.profit)}</span>`;
+      pairSummary.appendChild(div);
+    });
+    if (!Object.keys(summary).length) pairSummary.textContent = "記録が増えると、ここに通貨ペア別成績が出ます。";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
+    }[ch]));
+  }
+
+  $("tradeForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    trades.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      date: $("date").value,
+      pair: $("pair").value,
+      side: $("side").value,
+      timeframe: $("timeframe").value,
+      pips: Number($("pips").value),
+      profit: Number($("profit").value),
+      lot: $("lot").value,
+      setup: $("setup").value,
+      reason: $("reason").value.trim(),
+      review: $("review").value.trim()
+    });
+    save();
+    $("pips").value = "";
+    $("profit").value = "";
+    $("lot").value = "";
+    $("reason").value = "";
+    $("review").value = "";
+    alert("保存したよ！");
+  });
+
+  window.removeTrade = function(id) {
+    if (!confirm("この記録を削除しますか？")) return;
+    trades = trades.filter(t => t.id !== id);
+    save();
+  };
+
+  function download(filename, content, type) {
+    const blob = new Blob([content], {type});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  $("exportJson").addEventListener("click", () => {
+    download("hapitan_fx_backup.json", JSON.stringify(trades, null, 2), "application/json");
+  });
+
+  $("importJson").addEventListener("click", () => $("fileInput").click());
+  $("fileInput").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const imported = JSON.parse(await file.text());
+      if (!Array.isArray(imported)) throw new Error();
+      if (confirm("現在の記録に追加しますか？\n「キャンセル」で現在の記録を置き換えます。")) {
+        trades = [...trades, ...imported];
+      } else {
+        trades = imported;
+      }
+      save();
+      alert("読み込みました。");
+    } catch {
+      alert("バックアップファイルを読み込めませんでした。");
+    }
+    e.target.value = "";
+  });
+
+  $("exportCsv").addEventListener("click", () => {
+    const headers = ["日付","通貨ペア","売買","時間足","pips","損益円","ロット","手法","エントリー理由","振り返り"];
+    const lines = [headers, ...trades.map(t => [
+      t.date,t.pair,t.side,t.timeframe,t.pips,t.profit,t.lot,t.setup,t.reason,t.review
+    ])].map(row => row.map(v => `"${String(v ?? "").replaceAll('"','""')}"`).join(","));
+    download("hapitan_fx_trades.csv", "\uFEFF" + lines.join("\n"), "text/csv;charset=utf-8");
+  });
+
+  $("deleteAll").addEventListener("click", () => {
+    if (!trades.length) return;
+    if (confirm("すべての記録を削除します。バックアップは取りましたか？")) {
+      trades = [];
+      save();
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>
